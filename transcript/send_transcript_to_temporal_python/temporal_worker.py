@@ -16,8 +16,6 @@ class ZoomRTMSWorkflow:
     @workflow.run
     async def run(self) -> List[str]:
         messages: List[str] = []
-        workflow.logger.info("Running workflow.")
-        print("Running workflow.")
         while True:
             await workflow.wait_condition(
                 lambda: not self._pending_messages.empty() or self._exit

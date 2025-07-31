@@ -8,6 +8,7 @@ import uvicorn
 import ssl
 import temporal_worker
 from temporalio.client import Client
+from temporalio.exceptions import WorkflowAlreadyStartedError
 from fastapi import FastAPI, Request
 from dotenv import load_dotenv
 
@@ -16,7 +17,6 @@ load_dotenv()
 
 app = FastAPI()
 port = int(os.getenv("PORT", 3000))
-client = Client.connect("localhost:7233")
 
 ZOOM_SECRET_TOKEN = os.getenv("ZOOM_SECRET_TOKEN")
 CLIENT_ID = os.getenv("ZM_CLIENT_ID")
@@ -71,6 +71,7 @@ async def connect_to_signaling_websocket(meeting_uuid, stream_id, server_url):
                     data = await ws.recv()
                     msg = json.loads(data)
                     # print("Signaling Message:", json.dumps(msg, indent=2))
+                    client = await Client.connect("localhost:7233")
                     handle = client.get_workflow_handle("zoom-rtms-workflow")
                     await handle.signal("ZoomSignalingMessage", json.dumps(msg, indent=2))
 
@@ -138,6 +139,7 @@ async def connect_to_media_websocket(media_url, meeting_uuid, stream_id, signali
                         # Try to parse as JSON first
                         msg = json.loads(data)
                         # print("Media JSON Message:", json.dumps(msg, indent=2))
+                        client = await Client.connect("localhost:7233")
                         handle = client.get_workflow_handle("zoom-rtms-workflow")
                         await handle.signal("ZoomMediaMessage", json.dumps(msg, indent=2))
 
@@ -219,12 +221,19 @@ async def webhook(request: Request):
 
     return {"status": "ok"}
 
+async def start_temporal_workflow():
+    client = await Client.connect("localhost:7233")
+    try:
+        await client.start_workflow(
+            temporal_worker.ZoomRTMSWorkflow.run,
+            id="zoom-rtms-workflow",
+            task_queue="zoom-rtms",
+        )
+    except WorkflowAlreadyStartedError:
+        pass
+
 if __name__ == "__main__":
+    asyncio.run(start_temporal_workflow())
     print(f"Server running at http://localhost:{port}")
     print(f"Webhook endpoint available at http://localhost:{port}{WEBHOOK_PATH}")
-    client.start_workflow(
-        temporal_worker.ZoomRTMSWorkflow.run,
-        id="zoom-rtms-workflow",
-        task_queue="zoom-rtms",
-    )
     uvicorn.run(app, host="0.0.0.0", port=port) 
