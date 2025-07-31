@@ -1,4 +1,4 @@
-# Print Incoming Transcripts Example
+# Send Incoming Transcripts to Temporal Example
 
 This example demonstrates how to receive and print incoming transcript data from a Zoom meeting using the RTMS (Real-Time Media Streaming) service.
 
@@ -26,22 +26,22 @@ ZM_CLIENT_SECRET=your_client_secret
 
 ## Running the Example
 
-1. Start the server:
+1. Start a Temporal dev server:
+```bash
+temporal server start-dev
+```
+
+2. Start the app:
 ```bash
 python print_transcripts.py
 ```
 
-2. The server will start on port 3000. You'll need to expose this port to the internet using a tool like ngrok:
+3. The server will start on port 3000. You'll need to expose this port to the internet using a tool like ngrok:
 ```bash
 ngrok http 3000
 ```
 
-3. Configure your Zoom App's webhook URL to point to your exposed endpoint (e.g., `https://your-ngrok-url/webhook`)
-
-4. Start a Temporal dev server:
-```bash
-temporal server start-dev
-```
+4. Configure your Zoom App's webhook URL to point to your exposed endpoint (e.g., `https://your-ngrok-url/webhook`)
 
 5. Start the Temporal Worker to handle this Workflow:
 ```bash
